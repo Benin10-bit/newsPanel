@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html data-tema="escuro" lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="IMG/logo.png" type="image/x-icon" />
+
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="estilo.css" />
+
+    <title>Entrar</title>
+
+    <style>
+      :root {
+        --input: #eee; /* fallback */
+        --text: #000;
+      }
+
+      #msg {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--input);
+        color: var(--text);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        font-family: sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="msg"></div>
+
+    <main
+      style="
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+      "
+    >
+      <h1>Login</h1>
+      <article>
+        <form
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            min-height: 50vh;
+            display: flex;
+          "
+          id="formNews"
+          autocomplete="off"
+        >
+          <label style="font-size: 1.5rem;" for="user">Insira o usuário ADMIN</label>
+          <input style="padding: 1.3rem 6rem;font-size: 1.3rem;" required type="text" name="user" id="user" />
+
+          <label style="font-size: 1.5rem;" for="senha">Insira a senha do ADMIN</label>
+          <input style="padding: 1.3rem 6rem;font-size: 1.3rem;" required type="password" name="senha" id="senha" />
+
+          <button style="padding: 1.4rem;font-size: 1.3rem; max-width: 15rem;" type="submit" class="botao">Entrar como ADMIN</button>
+        </form>
+      </article>
+    </main>
+
+    <script>
+      const msg = document.querySelector("#msg");
+
+      // Usuário fixo
+      const usuarioCorreto = "admin";
+
+      // Hash SHA-256 da senha "123456"
+      const senhaHashCorreta =
+        "3a77116b437f7dbd3cc1331cd0d91349ad450b3f87a26fb6609e3de20018f4a0"; // hash fictício, vamos calcular abaixo
+
+      async function hashSenha(senha) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(senha);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      document
+        .querySelector("#formNews")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const usuario = document.querySelector("#user").value;
+          const senha = document.querySelector("#senha").value;
+
+          const senhaHash = await hashSenha(senha);
+
+          if (usuario === usuarioCorreto && senhaHash === senhaHashCorreta) {
+            localStorage.setItem("logado", "true");
+            localStorage.setItem("expira", Date.now() + 5 * 60 * 1000);
+            window.location.href = "createNews.html";
+          } else {
+            msg.innerHTML = "⚠️ Usuário ou senha incorretos";
+            msg.style.display = "block";
+            setTimeout(() => (msg.style.display = "none"), 3000);
+
+            usuario.textContent = "";
+            senha.textContent = "";
+          }
+        });
+    </script>
+  </body>
+</html>
