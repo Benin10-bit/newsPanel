@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
 
     // pega valores dos campos
-    const titulo = document.querySelector("#titulo").value.trim();
     const resumo = document.querySelector("#resumo").value.trim();
     const autor = document.querySelector("#autor").value.trim();
     const corpo = document.querySelector("#corpo").value.trim();
@@ -18,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
     msgEl.style.color = "";
 
     const news = {
-      title: titulo,
       summary: resumo,
       author: autor,
       body: corpo,
