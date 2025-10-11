@@ -194,7 +194,8 @@
     input[type="text"],
     input[type="password"],
     input[type="file"],
-    textarea {
+    textarea,
+    select {
       width: 100%;
       padding: 0.75rem;
       background: var(--input);
@@ -207,7 +208,8 @@
 
     input[type="text"]:focus,
     input[type="password"]:focus,
-    textarea:focus {
+    textarea:focus,
+    select:focus {
       outline: none;
       border-color: var(--botoes);
     }
@@ -218,19 +220,164 @@
       font-family: inherit;
     }
 
+    select {
+      cursor: pointer;
+    }
+
+    select option {
+      background: var(--cards);
+      color: var(--text);
+      padding: 0.5rem;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--bordas);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      background: var(--input);
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area:hover {
+      border-color: var(--botoes);
+      background: rgba(165, 194, 162, 0.05);
+    }
+
+    .upload-area.drag-over {
+      border-color: var(--botoes);
+      background: rgba(165, 194, 162, 0.1);
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+
+    .upload-text {
+      color: var(--destaques);
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-hint {
+      color: var(--text);
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+
     .preview-container {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
       margin-top: 1rem;
     }
 
-    .preview-container img {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
+    .preview-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
       border: 2px solid var(--bordas);
+      background: var(--input);
+      transition: all 0.3s ease;
+    }
+
+    .preview-item:hover {
+      border-color: var(--botoes);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(165, 194, 162, 0.3);
+    }
+
+    .preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-remove {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: all 0.3s;
+      backdrop-filter: blur(4px);
+    }
+
+    .preview-item:hover .preview-remove {
+      opacity: 1;
+    }
+
+    .preview-remove:hover {
+      background: rgba(185, 28, 28, 1);
+      transform: scale(1.1);
+    }
+
+    .preview-index {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0.5rem;
+      background: rgba(165, 194, 162, 0.9);
+      color: var(--background);
+      padding: 0.25rem 0.5rem;
       border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .type-badge.noticia {
+      background: rgba(18, 175, 78, 0.2);
+      color: var(--loading);
+      border: 1px solid var(--loading);
+    }
+
+    .type-badge.cronica {
+      background: rgba(165, 194, 162, 0.2);
+      color: var(--botoes);
+      border: 1px solid var(--botoes);
+    }
+
+    .type-badge.poema {
+      background: rgba(184, 172, 146, 0.2);
+      color: var(--destaques);
+      border: 1px solid var(--destaques);
+    }
+
+    .type-badge.tirinha {
+      background: rgba(206, 215, 194, 0.2);
+      color: var(--titulo);
+      border: 1px solid var(--titulo);
     }
 
     .btn {
@@ -502,9 +649,8 @@
         padding: 1rem;
       }
 
-      .preview-container img {
-        width: 80px;
-        height: 80px;
+      .preview-container {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       }
     }
   </style>
@@ -561,6 +707,17 @@
         <h2>✍️ Criar Nova Notícia</h2>
         <form id="formCriar">
           <div class="form-group">
+            <label for="tipo">Tipo de Publicação *</label>
+            <select id="tipo" required>
+              <option value="">Selecione o tipo...</option>
+              <option value="noticia">📰 Notícia</option>
+              <option value="cronica">📝 Crônica</option>
+              <option value="poema">✍️ Poema</option>
+              <option value="tirinha">🎨 Tirinha</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label for="titulo">Título *</label>
             <input type="text" id="titulo" required>
           </div>
@@ -582,8 +739,12 @@
 
           <div class="form-group">
             <label for="imagens">Imagens (máximo 5)</label>
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-icon">📸</div>
+              <div class="upload-text">Clique ou arraste imagens aqui</div>
+              <div class="upload-hint">Suporta: JPG, PNG, GIF (máx. 5 imagens)</div>
+            </div>
             <input type="file" id="imagens" accept="image/*" multiple>
-            <p class="info-text">Selecione até 5 imagens para a notícia</p>
             <div id="preview-criar" class="preview-container"></div>
           </div>
 
@@ -617,6 +778,17 @@
       
       <form id="formEditar">
         <input type="hidden" id="edit-id">
+        
+        <div class="form-group">
+          <label for="edit-tipo">Tipo de Publicação *</label>
+          <select id="edit-tipo" required>
+            <option value="">Selecione o tipo...</option>
+            <option value="noticia">📰 Notícia</option>
+            <option value="cronica">📝 Crônica</option>
+            <option value="poema">✍️ Poema</option>
+            <option value="tirinha">🎨 Tirinha</option>
+          </select>
+        </div>
         
         <div class="form-group">
           <label for="edit-titulo">Título *</label>
@@ -697,9 +869,7 @@
       submitBtn.textContent = 'Verificando...';
       
       try {
-        // Gera o hash da senha digitada
         const senhaDigitadaHash = await gerarHash(senha);
-        // Gera o hash da senha correta para comparar
         const senhaCorretaHash = await gerarHash(SENHA_CORRETA);
         
         if (login === LOGIN_CORRETO && senhaDigitadaHash === senhaCorretaHash) {
@@ -758,21 +928,81 @@
     // PREVIEW DE IMAGENS (CRIAR)
     const imagensInput = document.getElementById('imagens');
     const previewCriar = document.getElementById('preview-criar');
+    const uploadArea = document.getElementById('uploadArea');
+    let selectedFiles = [];
 
-    imagensInput.addEventListener('change', () => {
-      previewCriar.innerHTML = '';
-      const files = imagensInput.files;
-      for (let i = 0; i < files.length && i < 5; i++) {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(files[i]);
-        previewCriar.appendChild(img);
+    // Click na área de upload
+    uploadArea.addEventListener('click', () => {
+      imagensInput.click();
+    });
+
+    // Drag and Drop
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (files.length > 0) {
+        const dataTransfer = new DataTransfer();
+        files.slice(0, 5).forEach(file => dataTransfer.items.add(file));
+        imagensInput.files = dataTransfer.files;
+        atualizarPreview();
       }
     });
+
+    imagensInput.addEventListener('change', atualizarPreview);
+
+    function atualizarPreview() {
+      previewCriar.innerHTML = '';
+      selectedFiles = Array.from(imagensInput.files).slice(0, 5);
+      
+      selectedFiles.forEach((file, index) => {
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.alt = `Preview ${index + 1}`;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'preview-remove';
+        removeBtn.innerHTML = '×';
+        removeBtn.type = 'button';
+        removeBtn.onclick = () => removerImagem(index);
+        
+        const indexBadge = document.createElement('div');
+        indexBadge.className = 'preview-index';
+        indexBadge.textContent = `${index + 1}`;
+        
+        div.appendChild(img);
+        div.appendChild(removeBtn);
+        div.appendChild(indexBadge);
+        previewCriar.appendChild(div);
+      });
+    }
+
+    function removerImagem(index) {
+      selectedFiles.splice(index, 1);
+      const dataTransfer = new DataTransfer();
+      selectedFiles.forEach(file => dataTransfer.items.add(file));
+      imagensInput.files = dataTransfer.files;
+      atualizarPreview();
+    }
 
     // CRIAR NOTÍCIA
     document.getElementById('formCriar').addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      const tipo = document.getElementById('tipo').value;
       const titulo = document.getElementById('titulo').value.trim();
       const resumo = document.getElementById('resumo').value.trim();
       const autor = document.getElementById('autor').value.trim();
@@ -785,14 +1015,36 @@
       msgEl.style.display = 'none';
       msgEl.className = 'message';
       
+      // Validar se o tipo foi selecionado
+      if (!tipo) {
+        msgEl.className = 'message error';
+        msgEl.textContent = '❌ Por favor, selecione o tipo de publicação!';
+        msgEl.style.display = 'block';
+        return;
+      }
+      
       const formData = new FormData();
+      formData.append('newsType', tipo);
       formData.append('title', titulo);
       formData.append('summary', resumo);
       formData.append('author', autor);
       formData.append('body', corpo);
       
+      // Log para debug
+      console.log('Dados sendo enviados:');
+      console.log('newstype:', tipo);
+      console.log('title:', titulo);
+      console.log('summary:', resumo);
+      console.log('author:', autor);
+      console.log('body:', corpo);
+      
       for (let i = 0; i < imagens.length && i < 5; i++) {
         formData.append(`image${i + 1}`, imagens[i]);
+      }
+      
+      // Verificar conteúdo do FormData
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
       }
       
       submitBtn.disabled = true;
@@ -821,6 +1073,7 @@
           msgEl.textContent = '✅ Notícia criada com sucesso!';
           e.target.reset();
           previewCriar.innerHTML = '';
+          selectedFiles = [];
         }
         msgEl.style.display = 'block';
       } catch (err) {
@@ -867,9 +1120,14 @@
             imgHTML = `<img src="${encodeURI(url)}" alt="${news.title || 'Imagem da notícia'}">`;
           }
           
+          const typeBadge = news.newstype 
+            ? `<span class="type-badge ${news.newstype}">${getTypeIcon(news.newstype)} ${news.newstype}</span>`
+            : '';
+          
           article.innerHTML = `
             ${imgHTML}
             <div class="news-content">
+              <div>${typeBadge}</div>
               <h3>${news.title}</h3>
               <p>${news.summary}</p>
               <pre>- ${news.author}</pre>
@@ -890,6 +1148,16 @@
       } finally {
         loader.style.display = 'none';
       }
+    }
+
+    function getTypeIcon(type) {
+      const icons = {
+        'noticia': '📰',
+        'cronica': '📝',
+        'poema': '✍️',
+        'tirinha': '🎨'
+      };
+      return icons[type] || '📄';
     }
 
     // COPIAR ID
@@ -952,6 +1220,7 @@
         if (!news) throw new Error('Notícia não encontrada');
         
         document.getElementById('edit-id').value = news.id;
+        document.getElementById('edit-tipo').value = news.newstype || '';
         document.getElementById('edit-titulo').value = news.title;
         document.getElementById('edit-resumo').value = news.summary;
         document.getElementById('edit-autor').value = news.author;
@@ -979,6 +1248,7 @@
       e.preventDefault();
       
       const id = document.getElementById('edit-id').value;
+      const tipo = document.getElementById('edit-tipo').value;
       const resumo = document.getElementById('edit-resumo').value.trim();
       const autor = document.getElementById('edit-autor').value.trim();
       const corpo = document.getElementById('edit-corpo').value.trim();
@@ -988,11 +1258,26 @@
       
       msgEl.style.display = 'none';
       
+      // Validar se o tipo foi selecionado
+      if (!tipo) {
+        msgEl.className = 'message error';
+        msgEl.textContent = '❌ Por favor, selecione o tipo de publicação!';
+        msgEl.style.display = 'block';
+        return;
+      }
+      
       const news = {
+        newstype: tipo,
         summary: resumo,
         author: autor,
         body: corpo
       };
+      
+      // Log para debug
+      console.log('Dados de edição sendo enviados:');
+      console.log('ID:', id);
+      console.log('newstype:', tipo);
+      console.log('Objeto completo:', JSON.stringify(news));
       
       submitBtn.disabled = true;
       const originalText = submitBtn.textContent;
