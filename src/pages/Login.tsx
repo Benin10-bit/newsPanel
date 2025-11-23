@@ -50,16 +50,18 @@ const Login = () => {
         title: "Login realizado!",
         description: "Redirecionando...",
       });
-      navigate('/dashboard');
+      // Aguarda um momento para garantir que o cookie foi salvo
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 100);
     } else {
       toast({
         title: "Erro ao fazer login",
         description: result.error || "Verifique suas credenciais",
         variant: "destructive",
       });
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   // Mostra loading enquanto verifica autenticação
