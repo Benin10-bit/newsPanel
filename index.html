@@ -840,15 +840,22 @@
       const API_BASE = "https://apijornal-w0o9.onrender.com";
 
       /* ============================
-      UTILIDADES
+AUTO LOGIN (se já existir cookie)
 ============================ */
-      function getToken() {
-        return document.cookie
-          .split("; ")
-          .find((c) => c.startsWith("jwt="))
-          ?.split("=")[1];
+      function temCookieJWT() {
+        return document.cookie.includes("token=");
       }
 
+      window.addEventListener("DOMContentLoaded", () => {
+        if (temCookieJWT()) {
+          document.getElementById("loginScreen").style.display = "none";
+          document.getElementById("mainPanel").classList.add("active");
+        }
+      });
+
+      /* ============================
+UTILIDADES
+============================ */
       function showMessage(el, type, msg) {
         el.className = `message ${type}`;
         el.textContent = msg;
@@ -860,7 +867,7 @@
       }
 
       /* ============================
-      LOGIN
+LOGIN
 ============================ */
       document
         .getElementById("formLogin")
@@ -881,6 +888,7 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ username: login, password: senha }),
+              credentials: "include", // ENVIA E SALVA COOKIE HTTPONLY
             });
 
             const data = await res.json();
@@ -892,18 +900,9 @@
                 data.message || "Falha ao fazer login"
               );
 
-            if (!data.token)
-              return showMessage(msgEl, "error", "API não retornou token!");
-
-            document.cookie = `jwt=${data.token}; path=/; max-age=${
-              7 * 24 * 60 * 60
-            }; secure; samesite=strict`;
-
+            // Servidor já colocou cookie HttpOnly. Nada mais a fazer.
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("mainPanel").classList.add("active");
-            document.getElementById("username").textContent = login;
-
-            showMessage(msgEl, "success", "Login realizado com sucesso!");
           } catch (err) {
             showMessage(
               msgEl,
@@ -916,16 +915,25 @@
           }
         });
 
-      document.getElementById("btnLogout").addEventListener("click", () => {
-        if (confirm("Deseja realmente sair?")) {
-          document.cookie = "jwt=; path=/; max-age=0; secure; samesite=strict";
+      /* ============================
+LOGOUT
+============================ */
+      document
+        .getElementById("btnLogout")
+        .addEventListener("click", async () => {
+          if (!confirm("Deseja realmente sair?")) return;
+
+          await fetch(`${API_BASE}/logout`, {
+            method: "POST",
+            credentials: "include",
+          });
+
           document.getElementById("mainPanel").classList.remove("active");
           document.getElementById("loginScreen").style.display = "flex";
-        }
-      });
+        });
 
       /* ============================
-      SISTEMA DE TABS
+TABS
 ============================ */
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -944,7 +952,7 @@
       });
 
       /* ============================
-      UPLOAD / PREVIEW
+UPLOAD / PREVIEW
 ============================ */
       const imagensInput = document.getElementById("imagens");
       const previewCriar = document.getElementById("preview-criar");
@@ -1004,7 +1012,7 @@
       }
 
       /* ============================
-      CRIAR NOTÍCIA
+CRIAR NOTÍCIA
 ============================ */
       document
         .getElementById("formCriar")
@@ -1029,10 +1037,6 @@
               "Selecione o tipo da publicação!"
             );
 
-          const token = getToken();
-          if (!token)
-            return showMessage(msgEl, "error", "Você não está autenticado!");
-
           const fd = new FormData();
           fd.append("newsType", tipo);
           fd.append("title", titulo);
@@ -1049,8 +1053,8 @@
           try {
             const res = await fetch(`${API_BASE}/news`, {
               method: "POST",
-              headers: { Authorization: "Bearer " + token },
               body: fd,
+              credentials: "include", // ENVIA COOKIE
             });
 
             const data = res.headers.get("content-type")?.includes("json")
@@ -1072,7 +1076,7 @@
         });
 
       /* ============================
-      LISTAR NOTÍCIAS
+LISTAR NOTÍCIAS
 ============================ */
       async function carregarNoticias() {
         const loader = document.getElementById("loader");
@@ -1143,7 +1147,7 @@
       }
 
       /* ============================
-      COPIAR ID
+COPIAR ID
 ============================ */
       async function copiarId(id) {
         try {
@@ -1157,15 +1161,12 @@
       }
 
       /* ============================
-      DELETAR NOTÍCIA
+DELETAR NOTÍCIA
 ============================ */
       async function deletarNoticia(id, btn) {
         if (!confirm("Deseja deletar esta notícia?")) return;
 
-        const token = getToken();
         const msgEl = document.getElementById("msg-lista");
-        if (!token)
-          return showMessage(msgEl, "error", "Você não está autenticado!");
 
         btn.disabled = true;
         btn.textContent = "Removendo...";
@@ -1173,7 +1174,7 @@
         try {
           const res = await fetch(`${API_BASE}/delete-news/${id}`, {
             method: "DELETE",
-            headers: { Authorization: "Bearer " + token },
+            credentials: "include",
           });
 
           if (!res.ok) throw new Error("Erro ao deletar");
@@ -1188,7 +1189,7 @@
       }
 
       /* ============================
-      MODAL DE EDIÇÃO
+MODAL DE EDIÇÃO
 ============================ */
       async function abrirModalEditar(id) {
         try {
@@ -1222,7 +1223,7 @@
       };
 
       /* ============================
-      SALVAR EDIÇÃO
+SALVAR EDIÇÃO
 ============================ */
       document
         .getElementById("formEditar")
@@ -1241,20 +1242,14 @@
 
           if (!tipo) return showMessage(msgEl, "error", "Selecione o tipo!");
 
-          const token = getToken();
-          if (!token)
-            return showMessage(msgEl, "error", "Você não está autenticado!");
-
           btn.disabled = true;
           btn.textContent = "Salvando...";
 
           try {
             const res = await fetch(`${API_BASE}/update-news/${id}`, {
               method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + token,
-              },
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
               body: JSON.stringify({
                 newstype: tipo,
                 summary: resumo,
