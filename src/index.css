@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Terra e oliva - design terroso elegante */
+    --background: 36 11% 10%;
+    --foreground: 42 18% 83%;
+
+    --card: 40 7% 15%;
+    --card-foreground: 42 18% 83%;
+
+    --popover: 40 7% 15%;
+    --popover-foreground: 42 18% 83%;
+
+    --primary: 105 22% 70%;
+    --primary-foreground: 36 11% 10%;
+
+    --secondary: 40 10% 17%;
+    --secondary-foreground: 42 18% 83%;
+
+    --muted: 40 10% 17%;
+    --muted-foreground: 40 15% 60%;
+
+    --accent: 105 22% 70%;
+    --accent-foreground: 36 11% 10%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 42 18% 98%;
+
+    --border: 40 15% 25%;
+    --input: 40 12% 16%;
+    --ring: 105 22% 70%;
+
+    --success: 142 76% 36%;
+    
+    --radius: 0.75rem;
+
+    /* Gradientes suaves */
+    --gradient-primary: linear-gradient(135deg, hsl(105 22% 70%), hsl(105 22% 60%));
+    --gradient-card: linear-gradient(145deg, hsl(40 7% 15%), hsl(40 7% 13%));
+    
+    /* Sombras elegantes */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-accent: 0 4px 16px hsl(105 22% 70% / 0.2);
+
+    /* Transições suaves */
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-card;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
