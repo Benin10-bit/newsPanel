@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://apijornal-w0o9.onrender.com/$1"
+    }
+  ]
+}
