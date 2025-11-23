@@ -11,18 +11,6 @@ import NewsList from '@/components/NewsList';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    setLoading(true);
-    await auth.logout();
-    toast({
-      title: "Logout realizado",
-      description: "Até logo!",
-    });
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-background">
