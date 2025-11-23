@@ -838,7 +838,30 @@
 
     <script>
       const API_BASE = "https://apijornal-w0o9.onrender.com";
-      // Sistema de Login via API
+
+      /* ============================
+      UTILIDADES
+============================ */
+      function getToken() {
+        return document.cookie
+          .split("; ")
+          .find((c) => c.startsWith("jwt="))
+          ?.split("=")[1];
+      }
+
+      function showMessage(el, type, msg) {
+        el.className = `message ${type}`;
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      function hideMessage(el) {
+        el.style.display = "none";
+      }
+
+      /* ============================
+      LOGIN
+============================ */
       document
         .getElementById("formLogin")
         .addEventListener("submit", async (e) => {
@@ -849,85 +872,61 @@
           const msgEl = document.getElementById("msg-login");
           const submitBtn = e.target.querySelector('button[type="submit"]');
 
-          msgEl.style.display = "none";
+          hideMessage(msgEl);
           submitBtn.disabled = true;
           submitBtn.textContent = "Verificando...";
 
           try {
-            // 🔵 Envia requisição POST para sua API
-            const response = await fetch(`${API_BASE}/login`, {
+            const res = await fetch(`${API_BASE}/login`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                username: login,
-                password: senha,
-              }),
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: login, password: senha }),
             });
 
-            const data = await response.json();
+            const data = await res.json();
 
-            // ❌ Erro da API
-            if (!response.ok) {
-              msgEl.className = "message error";
-              msgEl.textContent = `❌ Erro: ${
+            if (!res.ok)
+              return showMessage(
+                msgEl,
+                "error",
                 data.message || "Falha ao fazer login"
-              }`;
-              msgEl.style.display = "block";
-              return;
-            }
+              );
 
-            // 🔐 API retornou o JWT
-            const token = data.token;
-            if (!token) {
-              msgEl.className = "message error";
-              msgEl.textContent = "❌ API não retornou token!";
-              msgEl.style.display = "block";
-              return;
-            }
+            if (!data.token)
+              return showMessage(msgEl, "error", "API não retornou token!");
 
-            // 🟢 Salvar JWT em cookie (expira em 7 dias)
-            document.cookie = `jwt=${token}; path=/; max-age=${
+            document.cookie = `jwt=${data.token}; path=/; max-age=${
               7 * 24 * 60 * 60
             }; secure; samesite=strict`;
 
-            // 🔵 Atualiza UI
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("mainPanel").classList.add("active");
             document.getElementById("username").textContent = login;
 
-            msgEl.className = "message success";
-            msgEl.textContent = "✅ Login realizado com sucesso!";
-            msgEl.style.display = "block";
+            showMessage(msgEl, "success", "Login realizado com sucesso!");
           } catch (err) {
-            msgEl.className = "message error";
-            msgEl.textContent = "❌ Erro ao processar login: " + err.message;
-            msgEl.style.display = "block";
+            showMessage(
+              msgEl,
+              "error",
+              "Erro ao processar login: " + err.message
+            );
           } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = "Entrar";
           }
         });
-      // Logout
+
       document.getElementById("btnLogout").addEventListener("click", () => {
-        if (confirm("Deseja realmente sair do sistema?")) {
-          // 🔴 Apagar o cookie JWT (setando max-age=0)
+        if (confirm("Deseja realmente sair?")) {
           document.cookie = "jwt=; path=/; max-age=0; secure; samesite=strict";
-
-          // Se ainda quiser manter o sessionStorage para outras coisas:
-          sessionStorage.removeItem("logado");
-          sessionStorage.removeItem("usuario");
-
-          // Recarrega a página
-          window.location.reload();
+          document.getElementById("mainPanel").classList.remove("active");
+          document.getElementById("loginScreen").style.display = "flex";
         }
       });
 
-      // Verificar login ao carregar
-      verificarLogin();
-
-      // SISTEMA DE TABS
+      /* ============================
+      SISTEMA DE TABS
+============================ */
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           document
@@ -940,88 +939,73 @@
           btn.classList.add("active");
           document.getElementById(btn.dataset.tab).classList.add("active");
 
-          if (btn.dataset.tab === "listar") {
-            carregarNoticias();
-          }
+          if (btn.dataset.tab === "listar") carregarNoticias();
         });
       });
 
-      // PREVIEW DE IMAGENS (CRIAR)
+      /* ============================
+      UPLOAD / PREVIEW
+============================ */
       const imagensInput = document.getElementById("imagens");
       const previewCriar = document.getElementById("preview-criar");
       const uploadArea = document.getElementById("uploadArea");
       let selectedFiles = [];
 
-      // Click na área de upload
-      uploadArea.addEventListener("click", () => {
-        imagensInput.click();
-      });
-
-      // Drag and Drop
+      uploadArea.addEventListener("click", () => imagensInput.click());
       uploadArea.addEventListener("dragover", (e) => {
         e.preventDefault();
         uploadArea.classList.add("drag-over");
       });
-
-      uploadArea.addEventListener("dragleave", () => {
-        uploadArea.classList.remove("drag-over");
-      });
-
+      uploadArea.addEventListener("dragleave", () =>
+        uploadArea.classList.remove("drag-over")
+      );
       uploadArea.addEventListener("drop", (e) => {
         e.preventDefault();
         uploadArea.classList.remove("drag-over");
 
-        const files = Array.from(e.dataTransfer.files).filter((f) =>
+        const files = [...e.dataTransfer.files].filter((f) =>
           f.type.startsWith("image/")
         );
-        if (files.length > 0) {
-          const dataTransfer = new DataTransfer();
-          files.slice(0, 5).forEach((file) => dataTransfer.items.add(file));
-          imagensInput.files = dataTransfer.files;
-          atualizarPreview();
-        }
+        if (!files.length) return;
+
+        const dt = new DataTransfer();
+        files.slice(0, 5).forEach((f) => dt.items.add(f));
+        imagensInput.files = dt.files;
+        atualizarPreview();
       });
 
       imagensInput.addEventListener("change", atualizarPreview);
 
       function atualizarPreview() {
         previewCriar.innerHTML = "";
-        selectedFiles = Array.from(imagensInput.files).slice(0, 5);
+        selectedFiles = [...imagensInput.files].slice(0, 5);
 
-        selectedFiles.forEach((file, index) => {
+        selectedFiles.forEach((file, i) => {
           const div = document.createElement("div");
           div.className = "preview-item";
 
-          const img = document.createElement("img");
-          img.src = URL.createObjectURL(file);
-          img.alt = `Preview ${index + 1}`;
+          div.innerHTML = `
+      <img src="${URL.createObjectURL(file)}" alt="Preview ${i + 1}">
+      <button type="button" class="preview-remove">×</button>
+      <div class="preview-index">${i + 1}</div>
+    `;
 
-          const removeBtn = document.createElement("button");
-          removeBtn.className = "preview-remove";
-          removeBtn.innerHTML = "×";
-          removeBtn.type = "button";
-          removeBtn.onclick = () => removerImagem(index);
-
-          const indexBadge = document.createElement("div");
-          indexBadge.className = "preview-index";
-          indexBadge.textContent = `${index + 1}`;
-
-          div.appendChild(img);
-          div.appendChild(removeBtn);
-          div.appendChild(indexBadge);
+          div.querySelector(".preview-remove").onclick = () => removerImagem(i);
           previewCriar.appendChild(div);
         });
       }
 
       function removerImagem(index) {
         selectedFiles.splice(index, 1);
-        const dataTransfer = new DataTransfer();
-        selectedFiles.forEach((file) => dataTransfer.items.add(file));
-        imagensInput.files = dataTransfer.files;
+        const dt = new DataTransfer();
+        selectedFiles.forEach((f) => dt.items.add(f));
+        imagensInput.files = dt.files;
         atualizarPreview();
       }
 
-      // CRIAR NOTÍCIA
+      /* ============================
+      CRIAR NOTÍCIA
+============================ */
       document
         .getElementById("formCriar")
         .addEventListener("submit", async (e) => {
@@ -1036,84 +1020,60 @@
 
           const msgEl = document.getElementById("msg-criar");
           const submitBtn = e.target.querySelector('button[type="submit"]');
+          hideMessage(msgEl);
 
-          msgEl.style.display = "none";
-          msgEl.className = "message";
+          if (!tipo)
+            return showMessage(
+              msgEl,
+              "error",
+              "Selecione o tipo da publicação!"
+            );
 
-          if (!tipo) {
-            msgEl.className = "message error";
-            msgEl.textContent = "❌ Por favor, selecione o tipo de publicação!";
-            msgEl.style.display = "block";
-            return;
-          }
-
-          const formData = new FormData();
-          formData.append("newsType", tipo);
-          formData.append("title", titulo);
-          formData.append("summary", resumo);
-          formData.append("author", autor);
-          formData.append("body", corpo);
-
-          for (let i = 0; i < imagens.length && i < 5; i++) {
-            formData.append(`image${i + 1}`, imagens[i]);
-          }
-
-          // 🔐 PEGAR TOKEN DO COOKIE
           const token = getToken();
-          if (!token) {
-            msgEl.className = "message error";
-            msgEl.textContent =
-              "❌ Você não está autenticado! Faça login novamente.";
-            msgEl.style.display = "block";
-            return;
-          }
+          if (!token)
+            return showMessage(msgEl, "error", "Você não está autenticado!");
+
+          const fd = new FormData();
+          fd.append("newsType", tipo);
+          fd.append("title", titulo);
+          fd.append("summary", resumo);
+          fd.append("author", autor);
+          fd.append("body", corpo);
+          [...imagens]
+            .slice(0, 5)
+            .forEach((img, i) => fd.append(`image${i + 1}`, img));
 
           submitBtn.disabled = true;
-          const originalText = submitBtn.textContent;
           submitBtn.textContent = "Enviando...";
 
           try {
-            const response = await fetch(`${API_BASE}/news`, {
+            const res = await fetch(`${API_BASE}/news`, {
               method: "POST",
-              headers: {
-                Authorization: "Bearer " + token,
-              },
-              body: formData,
+              headers: { Authorization: "Bearer " + token },
+              body: fd,
             });
 
-            let data;
-            const contentType = response.headers.get("content-type") || "";
-            if (contentType.includes("application/json")) {
-              data = await response.json();
-            } else {
-              data = await response.text();
-            }
+            const data = res.headers.get("content-type")?.includes("json")
+              ? await res.json()
+              : await res.text();
 
-            if (!response.ok) {
-              msgEl.className = "message error";
-              msgEl.textContent = `❌ Erro ${response.status}: ${
-                data.message || data
-              }`;
-            } else {
-              msgEl.className = "message success";
-              msgEl.textContent = "✅ Notícia criada com sucesso!";
-              e.target.reset();
-              previewCriar.innerHTML = "";
-              selectedFiles = [];
-            }
+            if (!res.ok)
+              return showMessage(msgEl, "error", data.message || data);
 
-            msgEl.style.display = "block";
+            showMessage(msgEl, "success", "Notícia criada com sucesso!");
+            e.target.reset();
+            previewCriar.innerHTML = "";
           } catch (err) {
-            msgEl.className = "message error";
-            msgEl.textContent = "❌ Erro de conexão: " + err.message;
-            msgEl.style.display = "block";
+            showMessage(msgEl, "error", "Erro de conexão: " + err.message);
           } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            submitBtn.textContent = "Criar";
           }
         });
 
-      // CARREGAR NOTÍCIAS
+      /* ============================
+      LISTAR NOTÍCIAS
+============================ */
       async function carregarNoticias() {
         const loader = document.getElementById("loader");
         const container = document.getElementById("noticias");
@@ -1121,185 +1081,149 @@
 
         loader.style.display = "block";
         container.innerHTML = "";
-        msgEl.style.display = "none";
+        hideMessage(msgEl);
 
         try {
           const res = await fetch(`${API_BASE}/show-news`);
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          if (!res.ok) throw new Error(res.status);
 
           const data = await res.json();
           const newsArray = Array.isArray(data) ? data : data.news;
 
-          if (!newsArray || newsArray.length === 0) {
-            container.innerHTML =
-              '<p style="text-align: center; color: var(--destaques);">Nenhuma notícia encontrada</p>';
-            return;
+          if (!newsArray.length)
+            return (container.innerHTML = `<p style="text-align:center;color:var(--destaques)">Nenhuma notícia encontrada</p>`);
+
+          newsArray.forEach((n) => {
+            container.innerHTML += `
+        <div class="news-item">
+          ${
+            n.image1
+              ? `<img src="${
+                  n.image1.startsWith("http") ? n.image1 : API_BASE + n.image1
+                }"/>`
+              : ""
           }
-
-          newsArray.forEach((news) => {
-            const article = document.createElement("div");
-            article.className = "news-item";
-
-            let imgHTML = "";
-            if (news.image1) {
-              const url = news.image1.startsWith("http")
-                ? news.image1
-                : `${API_BASE}${news.image1}`;
-              imgHTML = `<img src="${encodeURI(url)}" alt="${
-                news.title || "Imagem da notícia"
-              }">`;
-            }
-
-            const typeBadge = news.newstype
-              ? `<span class="type-badge ${news.newstype}">${getTypeIcon(
-                  news.newstype
-                )} ${news.newstype}</span>`
-              : "";
-
-            article.innerHTML = `
-            ${imgHTML}
-            <div class="news-content">
-              <div>${typeBadge}</div>
-              <h3>${news.title}</h3>
-              <p>${news.summary}</p>
-              <pre>- ${news.author}</pre>
-              <div class="news-actions">
-                <button class="btn" onclick="abrirModalEditar('${news.id}')">Editar</button>
-                <button class="btn btn-danger" onclick="deletarNoticia('${news.id}', this)">Remover</button>
-                <button class="btn" onclick="copiarId('${news.id}')">Copiar ID</button>
-              </div>
+          <div class="news-content">
+            <span class="type-badge ${n.newstype}">${getTypeIcon(n.newstype)} ${
+              n.newstype
+            }</span>
+            <h3>${n.title}</h3>
+            <p>${n.summary}</p>
+            <pre>- ${n.author}</pre>
+            <div class="news-actions">
+              <button class="btn" onclick="abrirModalEditar('${
+                n.id
+              }')">Editar</button>
+              <button class="btn btn-danger" onclick="deletarNoticia('${
+                n.id
+              }', this)">Remover</button>
+              <button class="btn" onclick="copiarId('${
+                n.id
+              }')">Copiar ID</button>
             </div>
-          `;
-
-            container.appendChild(article);
+          </div>
+        </div>`;
           });
         } catch (err) {
-          msgEl.className = "message error";
-          msgEl.textContent = "⚠️ Erro ao buscar notícias: " + err.message;
-          msgEl.style.display = "block";
+          showMessage(
+            msgEl,
+            "error",
+            "Erro ao carregar notícias: " + err.message
+          );
         } finally {
           loader.style.display = "none";
         }
       }
 
-      function getTypeIcon(type) {
-        const icons = {
-          noticia: "📰",
-          cronica: "📝",
-          poema: "✍️",
-          tirinha: "🎨",
-        };
-        return icons[type] || "📄";
+      function getTypeIcon(t) {
+        return (
+          { noticia: "📰", cronica: "📝", poema: "✍️", tirinha: "🎨" }[t] ||
+          "📄"
+        );
       }
 
-      // COPIAR ID
+      /* ============================
+      COPIAR ID
+============================ */
       async function copiarId(id) {
         try {
           await navigator.clipboard.writeText(id);
           const msgEl = document.getElementById("msg-lista");
-          msgEl.className = "message success";
-          msgEl.textContent = "✅ ID copiado para área de transferência";
-          msgEl.style.display = "block";
-          setTimeout(() => {
-            msgEl.style.display = "none";
-          }, 3000);
-        } catch (err) {
-          alert("⚠️ Falha ao copiar: " + err.message);
+          showMessage(msgEl, "success", "ID copiado!");
+          setTimeout(() => hideMessage(msgEl), 2000);
+        } catch {
+          alert("Falha ao copiar ID.");
         }
       }
 
-      // DELETAR NOTÍCIA
+      /* ============================
+      DELETAR NOTÍCIA
+============================ */
       async function deletarNoticia(id, btn) {
-        if (!confirm("Tem certeza que deseja deletar esta notícia?")) return;
+        if (!confirm("Deseja deletar esta notícia?")) return;
 
+        const token = getToken();
         const msgEl = document.getElementById("msg-lista");
+        if (!token)
+          return showMessage(msgEl, "error", "Você não está autenticado!");
+
         btn.disabled = true;
         btn.textContent = "Removendo...";
 
         try {
-          // 🔐 PEGA O TOKEN DO COOKIE
-          const token = getToken();
-          if (!token) {
-            msgEl.className = "message error";
-            msgEl.textContent =
-              "❌ Você não está autenticado! Faça login novamente.";
-            msgEl.style.display = "block";
-            btn.disabled = false;
-            btn.textContent = "Remover";
-            return;
-          }
-
           const res = await fetch(`${API_BASE}/delete-news/${id}`, {
             method: "DELETE",
-            headers: {
-              Authorization: "Bearer " + token,
-            },
+            headers: { Authorization: "Bearer " + token },
           });
 
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || "Erro ao deletar a notícia");
-          }
+          if (!res.ok) throw new Error("Erro ao deletar");
 
-          msgEl.className = "message success";
-          msgEl.textContent = "✅ Notícia deletada com sucesso";
-          msgEl.style.display = "block";
-
-          setTimeout(() => {
-            msgEl.style.display = "none";
-          }, 3000);
-
-          // Remove o item da lista
+          showMessage(msgEl, "success", "Notícia removida!");
           btn.closest(".news-item").remove();
         } catch (err) {
-          msgEl.className = "message error";
-          msgEl.textContent = "⚠️ Erro ao deletar: " + err.message;
-          msgEl.style.display = "block";
+          showMessage(msgEl, "error", err.message);
           btn.disabled = false;
           btn.textContent = "Remover";
         }
       }
 
-      // ABRIR MODAL DE EDIÇÃO
+      /* ============================
+      MODAL DE EDIÇÃO
+============================ */
       async function abrirModalEditar(id) {
-        const modal = document.getElementById("modalEditar");
-        const msgEl = document.getElementById("msg-editar");
-
-        msgEl.style.display = "none";
-
         try {
           const res = await fetch(`${API_BASE}/show-news`);
           const data = await res.json();
-          const newsArray = Array.isArray(data) ? data : data.news;
-          const news = newsArray.find((n) => n.id === id);
+          const n = (Array.isArray(data) ? data : data.news).find(
+            (x) => x.id === id
+          );
 
-          if (!news) throw new Error("Notícia não encontrada");
+          if (!n) throw new Error("Notícia não encontrada");
 
-          document.getElementById("edit-id").value = news.id;
-          document.getElementById("edit-tipo").value = news.newstype || "";
-          document.getElementById("edit-titulo").value = news.title;
-          document.getElementById("edit-resumo").value = news.summary;
-          document.getElementById("edit-autor").value = news.author;
-          document.getElementById("edit-corpo").value = news.body;
+          document.getElementById("edit-id").value = n.id;
+          document.getElementById("edit-tipo").value = n.newstype;
+          document.getElementById("edit-titulo").value = n.title;
+          document.getElementById("edit-resumo").value = n.summary;
+          document.getElementById("edit-autor").value = n.author;
+          document.getElementById("edit-corpo").value = n.body;
 
-          modal.classList.add("active");
+          document.getElementById("modalEditar").classList.add("active");
         } catch (err) {
-          alert("⚠️ Erro ao carregar notícia: " + err.message);
+          alert("Erro ao abrir edição: " + err.message);
         }
       }
 
-      // FECHAR MODAL
-      document.getElementById("fecharModal").addEventListener("click", () => {
+      document.getElementById("fecharModal").onclick = () =>
         document.getElementById("modalEditar").classList.remove("active");
-      });
 
-      document.getElementById("modalEditar").addEventListener("click", (e) => {
-        if (e.target.id === "modalEditar") {
+      document.getElementById("modalEditar").onclick = (e) => {
+        if (e.target.id === "modalEditar")
           document.getElementById("modalEditar").classList.remove("active");
-        }
-      });
+      };
 
-      // EDITAR NOTÍCIA
+      /* ============================
+      SALVAR EDIÇÃO
+============================ */
       document
         .getElementById("formEditar")
         .addEventListener("submit", async (e) => {
@@ -1312,89 +1236,51 @@
           const corpo = document.getElementById("edit-corpo").value.trim();
 
           const msgEl = document.getElementById("msg-editar");
-          const submitBtn = e.target.querySelector('button[type="submit"]');
+          const btn = e.target.querySelector('button[type="submit"]');
+          hideMessage(msgEl);
 
-          msgEl.style.display = "none";
+          if (!tipo) return showMessage(msgEl, "error", "Selecione o tipo!");
 
-          if (!tipo) {
-            msgEl.className = "message error";
-            msgEl.textContent = "❌ Por favor, selecione o tipo de publicação!";
-            msgEl.style.display = "block";
-            return;
-          }
+          const token = getToken();
+          if (!token)
+            return showMessage(msgEl, "error", "Você não está autenticado!");
 
-          const news = {
-            newstype: tipo,
-            summary: resumo,
-            author: autor,
-            body: corpo,
-          };
-
-          console.log("Dados de edição sendo enviados:");
-          console.log("ID:", id);
-          console.log("newstype:", tipo);
-          console.log("Objeto completo:", JSON.stringify(news));
-
-          submitBtn.disabled = true;
-          const originalText = submitBtn.textContent;
-          submitBtn.textContent = "Salvando...";
+          btn.disabled = true;
+          btn.textContent = "Salvando...";
 
           try {
-            // 🔐 PEGAR JWT
-            const token = getToken();
-            if (!token) {
-              msgEl.className = "message error";
-              msgEl.textContent =
-                "❌ Você não está autenticado! Faça login novamente.";
-              msgEl.style.display = "block";
-              submitBtn.disabled = false;
-              submitBtn.textContent = originalText;
-              return;
-            }
-
-            const response = await fetch(`${API_BASE}/update-news/${id}`, {
+            const res = await fetch(`${API_BASE}/update-news/${id}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + token,
               },
-              body: JSON.stringify(news),
+              body: JSON.stringify({
+                newstype: tipo,
+                summary: resumo,
+                author: autor,
+                body: corpo,
+              }),
             });
 
-            let data;
-            const contentType = response.headers.get("content-type") || "";
-            if (contentType.includes("application/json")) {
-              data = await response.json();
-            } else {
-              data = await response.text();
-            }
+            const data = res.headers.get("content-type")?.includes("json")
+              ? await res.json()
+              : await res.text();
 
-            if (!response.ok) {
-              msgEl.className = "message error";
-              msgEl.textContent = `❌ Erro ${response.status}: ${
-                data.message || data
-              }`;
-            } else {
-              msgEl.className = "message success";
-              msgEl.textContent = "✅ Notícia editada com sucesso!";
-              msgEl.style.display = "block";
+            if (!res.ok)
+              return showMessage(msgEl, "error", data.message || data);
 
-              setTimeout(() => {
-                document
-                  .getElementById("modalEditar")
-                  .classList.remove("active");
-                carregarNoticias();
-              }, 2000);
-            }
+            showMessage(msgEl, "success", "Notícia atualizada!");
 
-            msgEl.style.display = "block";
+            setTimeout(() => {
+              document.getElementById("modalEditar").classList.remove("active");
+              carregarNoticias();
+            }, 1500);
           } catch (err) {
-            msgEl.className = "message error";
-            msgEl.textContent = "❌ Erro de conexão: " + err.message;
-            msgEl.style.display = "block";
+            showMessage(msgEl, "error", err.message);
           } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            btn.disabled = false;
+            btn.textContent = "Salvar";
           }
         });
     </script>
